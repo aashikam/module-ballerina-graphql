@@ -61,7 +61,8 @@ public class PluginConstants {
                 "http:Listener and graphql:ListenerConfiguration are mutually exclusive", "GRAPHQL_110",
                 DiagnosticSeverity.ERROR),
         INVALID_RETURN_TYPE_MULTIPLE_SERVICES("Invalid return type with multiple indistinct services",
-                "GRAPHQL_111", DiagnosticSeverity.ERROR);
+                "GRAPHQL_111", DiagnosticSeverity.ERROR),
+        INVALID_RESOURCE_PATH("Invalid hierarchical resource path", "GRAPHQL_112", DiagnosticSeverity.ERROR);
 
         private final String error;
         private final String errorCode;

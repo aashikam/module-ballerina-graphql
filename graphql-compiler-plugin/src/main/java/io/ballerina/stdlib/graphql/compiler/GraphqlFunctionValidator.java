@@ -31,6 +31,10 @@ import io.ballerina.compiler.api.symbols.TypeDescKind;
 import io.ballerina.compiler.api.symbols.TypeReferenceTypeSymbol;
 import io.ballerina.compiler.api.symbols.TypeSymbol;
 import io.ballerina.compiler.api.symbols.UnionTypeSymbol;
+import io.ballerina.compiler.api.symbols.resourcepath.PathSegmentList;
+import io.ballerina.compiler.api.symbols.resourcepath.ResourcePath;
+import io.ballerina.compiler.api.symbols.resourcepath.util.NamedPathSegment;
+import io.ballerina.compiler.api.symbols.resourcepath.util.PathSegment;
 import io.ballerina.compiler.syntax.tree.FunctionDefinitionNode;
 import io.ballerina.compiler.syntax.tree.Node;
 import io.ballerina.compiler.syntax.tree.NodeList;
@@ -40,6 +44,7 @@ import io.ballerina.projects.plugins.SyntaxNodeAnalysisContext;
 import io.ballerina.stdlib.graphql.compiler.PluginConstants.CompilationErrors;
 import io.ballerina.tools.diagnostics.Location;
 
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -52,6 +57,7 @@ import java.util.Set;
  */
 public class GraphqlFunctionValidator {
     private final Set<ClassSymbol> visitedClassSymbols = new HashSet<>();
+    private final Map<String, Integer> resourcePathLevel = new HashMap<>();
 
     public void validate(SyntaxNodeAnalysisContext context) {
         ServiceDeclarationNode serviceDeclarationNode = (ServiceDeclarationNode) context.node();
@@ -88,12 +94,32 @@ public class GraphqlFunctionValidator {
         if (methodSymbol.kind() == SymbolKind.RESOURCE_METHOD) {
             ResourceMethodSymbol resourceMethodSymbol = (ResourceMethodSymbol) methodSymbol;
             Optional<String> methodName = resourceMethodSymbol.getName();
+            if (resourceMethodSymbol.resourcePath().kind() == ResourcePath.Kind.PATH_SEGMENT_LIST) {
+                validateResourcePath((PathSegmentList) resourceMethodSymbol.resourcePath(), location, context);
+            }
             if (methodName.isPresent()) {
                 if (!methodName.get().equals(PluginConstants.RESOURCE_FUNCTION_GET)) {
                     PluginUtils.updateContext(context, CompilationErrors.INVALID_RESOURCE_FUNCTION_ACCESSOR, location);
                 }
             } else {
                 PluginUtils.updateContext(context, CompilationErrors.INVALID_RESOURCE_FUNCTION_ACCESSOR, location);
+            }
+        }
+    }
+
+    private void validateResourcePath(PathSegmentList resourcePath, Location location,
+                                      SyntaxNodeAnalysisContext context) {
+        List<PathSegment> pathSegments = resourcePath.list();
+        for (int i = 0; i < pathSegments.size(); i++) {
+            PathSegment pathSegment = pathSegments.get(i);
+            if (pathSegment.pathSegmentKind() == PathSegment.Kind.NAMED_SEGMENT) {
+                NamedPathSegment namedPathSegment = (NamedPathSegment) pathSegment;
+                if (resourcePathLevel.containsKey(namedPathSegment.name())
+                        && resourcePathLevel.get(namedPathSegment.name()) != i) {
+                    PluginUtils.updateContext(context, CompilationErrors.INVALID_RESOURCE_PATH, location);
+                } else {
+                    resourcePathLevel.put(namedPathSegment.name(), i);
+                }
             }
         }
     }
