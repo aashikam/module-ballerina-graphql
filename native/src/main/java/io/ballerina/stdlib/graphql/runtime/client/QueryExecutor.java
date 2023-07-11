@@ -46,6 +46,21 @@ public class QueryExecutor {
      */
     public static Object executeWithType(Environment env, BObject client, BString document, Object variables,
                                          Object operationName, Object headers, BTypedesc targetType) {
+        if (targetType.getDescribingType().getTag() == PredefinedTypes.TYPE_STREAM.getTag()) {
+            @SuppressWarnings("UnckeckedCast")
+            Object[] paramFeed = new Object[10];
+            paramFeed[0] = document;
+            paramFeed[1] = true;
+            paramFeed[2] = variables;
+            paramFeed[3] = true;
+            paramFeed[4] = operationName;
+            paramFeed[5] = true;
+            paramFeed[6] = headers;
+            paramFeed[7] = true;
+            paramFeed[8] = targetType;
+            paramFeed[9] = true;
+            return invokeClientMethod(env, client, "executeSubscription", paramFeed);
+        }
         return invokeClientMethod(env, client, document, variables, operationName, headers, targetType,
                 "processExecuteWithType");
     }
