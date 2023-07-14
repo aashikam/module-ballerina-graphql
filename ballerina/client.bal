@@ -18,6 +18,7 @@ import ballerina/jballerina.java;
 import ballerina/uuid;
 import ballerina/http;
 import ballerina/websocket;
+import ballerina/io;
 
 # The Ballerina GraphQL client that can be used to communicate with GraphQL APIs.
 public isolated client class Client {
@@ -215,6 +216,7 @@ public isolated client class Client {
                     if message is SubscriberMessage {
                         addMessagToSubscriber(message);
                     }
+                    io:println(message.toString());
                 } on fail {
 
                 }

@@ -39,7 +39,7 @@ public distinct isolated client class Subscriber {
             runtime:sleep(1);
             lock {
                 if self.messages.length() > 0 || self.unsubscribed || !self.wsClient.isOpen() {
-                    //break;
+                    break;
                 }
             }
         }
