@@ -16,11 +16,13 @@
 
 import ballerina/lang.runtime;
 import ballerina/websocket;
+import ballerina/io;
 
 # The Subscriber class serves as a client for handling a specific subscription operation.
 # It stores the stream associated with the subscription and offers methods for accessing
 # the subscription stream and unsubscribing from the subscription.
 public distinct isolated client class Subscriber {
+    private boolean startedListeningToSubscription = false;
     private final string id;
     private final websocket:Client wsClient;
     private final SubscriberMessage[] messages = [];
@@ -90,18 +92,47 @@ public distinct isolated client class Subscriber {
     }
 
     public isolated function next() returns record{|json value;|}? {
-        self.blockUntilMessagesNotEmptyOrUnsubscribed();
+       // self.blockUntilMessagesNotEmptyOrUnsubscribed();
         lock {
             if self.unsubscribed || !self.wsClient.isOpen() {
                 return ();
             }
-            SubscriberMessage message = self.messages.shift();
-            if message is CompleteMessage {
-                self.unsubscribed = true;
+            SubscriberMessage? message = checkpanic readEvent(self.wsClient);
+            while (message is ()) {
+                message = checkpanic readEvent(self.wsClient);
+            } 
+            if message is () {
                 return ();
+            } else {
+                if message is CompleteMessage {
+                    self.unsubscribed = true;
+                    return ();
+                }
+                json payload = message.payload;
+                return {value: payload.clone()};
             }
-            json payload = message.payload;
-            return {value: payload.clone()};
         }
     }
+}
+
+isolated function readEvent(websocket:Client wsClient) returns SubscriberMessage?|error {
+    // lock {
+    //     if self.startedListeningToSubscription {
+    //         return;
+    //     }
+    //     self.startedListeningToSubscription = true;
+    // }
+    //var addMessagToSubscriber = self.addMessagToSubscriber;
+    //var isClosed = self.isClosed;
+    ClientInboundMessage message = check wsClient->readMessage();
+    if message is PingMessage {
+        PongMessage pong = {'type: WS_PONG};
+        check wsClient->writeMessage(pong);
+    }
+
+    if message is SubscriberMessage {
+        return message;
+    }
+    io:println(message.toString());
+    return ();
 }

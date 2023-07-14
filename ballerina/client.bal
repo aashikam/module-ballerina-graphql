@@ -18,7 +18,6 @@ import ballerina/jballerina.java;
 import ballerina/uuid;
 import ballerina/http;
 import ballerina/websocket;
-import ballerina/io;
 
 # The Ballerina GraphQL client that can be used to communicate with GraphQL APIs.
 public isolated client class Client {
@@ -27,7 +26,6 @@ public isolated client class Client {
     private websocket:ClientConfiguration wsConfig;
     private final map<Subscriber> subscribers = {};
     private websocket:Client? wsClient = ();
-    private boolean startedListeningToSubscription = false;
     private boolean graphqlWsConnectionInitiated = false;
     private boolean wsClosed = false;
 
@@ -166,21 +164,10 @@ public isolated client class Client {
             json payload = getGraphqlPayload(document, variables, operationName);
             json graphqlPayload = {'type: WS_SUBSCRIBE, id, payload};
             check wsClient->writeMessage(graphqlPayload);
-            _ = check start self.hanldeMultiplexing(wsClient);
+            //_ = check start self.hanldeMultiplexing(wsClient);
             return subscriber.getStream();
         } on fail error err {
             return error ClientError("Failed to execute subscription: "+  err.message(), err);
-        }
-    }
-
-    private isolated function addMessagToSubscriber(SubscriberMessage message) {
-        string id = message.id;
-        lock {
-            if self.subscribers.hasKey(id) {
-                Subscriber subscriber = message is CompleteMessage ? self.subscribers.remove(message.id)
-                                                                   : self.subscribers.get(id);
-                subscriber.addMessage(message.clone());
-            }
         }
     }
 
@@ -190,38 +177,38 @@ public isolated client class Client {
         }
     }
 
-    private isolated function hanldeMultiplexing(websocket:Client wsClient) returns websocket:Error? {
-        lock {
-            if self.startedListeningToSubscription {
-                return;
-            }
-            self.startedListeningToSubscription = true;
-        }
-        var addMessagToSubscriber = self.addMessagToSubscriber;
-        var isClosed = self.isClosed;
-            while true {
-                lock {
-                    if isClosed() || !wsClient.isOpen() {
-                        return;
-                    }
-                }
-                do {
-                    ClientInboundMessage message = check wsClient->readMessage();
-                    if message is PingMessage {
-                        PongMessage pong = {'type: WS_PONG};
-                        check wsClient->writeMessage(pong);
-                        continue;
-                    }
+    // private isolated function hanldeMultiplexing(websocket:Client wsClient) returns websocket:Error? {
+    //     lock {
+    //         if self.startedListeningToSubscription {
+    //             return;
+    //         }
+    //         self.startedListeningToSubscription = true;
+    //     }
+    //     var addMessagToSubscriber = self.addMessagToSubscriber;
+    //     var isClosed = self.isClosed;
+    //         while true {
+    //             lock {
+    //                 if isClosed() || !wsClient.isOpen() {
+    //                     return;
+    //                 }
+    //             }
+    //             do {
+    //                 ClientInboundMessage message = check wsClient->readMessage();
+    //                 if message is PingMessage {
+    //                     PongMessage pong = {'type: WS_PONG};
+    //                     check wsClient->writeMessage(pong);
+    //                     continue;
+    //                 }
 
-                    if message is SubscriberMessage {
-                        addMessagToSubscriber(message);
-                    }
-                    io:println(message.toString());
-                } on fail {
+    //                 if message is SubscriberMessage {
+    //                     addMessagToSubscriber(message);
+    //                 }
+    //                 io:println(message.toString());
+    //             } on fail {
 
-                }
-            }
-    }
+    //             }
+    //         }
+    // }
 
     # Closes the underlying WebSocket connection of all the subscrpitions.
     # + return - A `graphql:ClientError` if an error occurred while closing the connection
