@@ -42,7 +42,23 @@ public isolated client class Client {
     # + clientConfig - The configurations to be used when initializing the `connector`
     # + return - An error at the failure of client initialization
     public isolated function init(string serviceUrl, *ClientConfiguration clientConfig) returns ClientError? {
-        http:ClientConfiguration httpClientConfig = {...clientConfig.httpConfig};
+        http:ClientConfiguration httpClientConfig = {
+            http1Settings: clientConfig.http1Settings,
+            timeout: clientConfig.timeout,
+            forwarded: clientConfig.forwarded,
+            followRedirects: clientConfig.followRedirects,
+            poolConfig: clientConfig.poolConfig,
+            cache: clientConfig.cache,
+            compression: clientConfig.compression,
+            auth: clientConfig.auth,
+            circuitBreaker: clientConfig.circuitBreaker,
+            retryConfig: clientConfig.retryConfig,
+            cookieConfig: clientConfig.cookieConfig,
+            responseLimits: clientConfig.responseLimits,
+            secureSocket: clientConfig.secureSocket,
+            proxy: clientConfig.proxy,
+            validation: clientConfig.validation
+        };
         httpClientConfig.httpVersion = http:HTTP_1_1;
         http:Client|http:ClientError httpClient = new (serviceUrl, httpClientConfig);
         if httpClient is http:ClientError {
@@ -58,21 +74,21 @@ public isolated client class Client {
     # which is a subtype of GenericResponse.
     #
     # + document - The GraphQL document. It can include queries & mutations.
-    #              For example `query OperationName($code:ID!) {country(code:$code) {name}}`.
+    # For example `query OperationName($code:ID!) {country(code:$code) {name}}`.
     # + variables - The GraphQL variables. For example `{"code": "<variable_value>"}`.
     # + operationName - The GraphQL operation name. If a request has two or more operations, then each operation must have a name.
-    #                   A request can only execute one operation, so you must also include the operation name to execute.
+    # A request can only execute one operation, so you must also include the operation name to execute.
     # + headers - The GraphQL API headers to execute each query
     # + targetType - The payload, which is expected to be returned after data binding. For example
-    #                `type CountryByCodeResponse record {| map<json?> extensions?; record {| record{|string name;|}? country; |} data;`
+    # `type CountryByCodeResponse record {| map<json?> extensions?; record {| record{|string name;|}? country; |} data;`
     # + return - The GraphQL response or a `graphql:ClientError` if failed to execute the query
     # # Deprecated
     # This method is now deprecated. Use the `execute()` API instead
     @deprecated
     remote isolated function executeWithType(string document, map<anydata>? variables = (), string? operationName = (),
-                                             map<string|string[]>? headers = (),
-                                             typedesc<GenericResponse|record{}|json> targetType = <>)
-                                             returns targetType|ClientError = @java:Method {
+            map<string|string[]>? headers = (),
+            typedesc<GenericResponse|record {}|json> targetType = <>)
+                                            returns targetType|ClientError = @java:Method {
         'class: "io.ballerina.stdlib.graphql.runtime.client.QueryExecutor",
         name: "executeWithType"
     } external;
@@ -81,24 +97,24 @@ public isolated client class Client {
     # which is a subtype of GenericResponseWithErrors.
     #
     # + document - The GraphQL document. It can include queries & mutations.
-    #              For example `query countryByCode($code:ID!) {country(code:$code) {name}}`.
+    # For example `query countryByCode($code:ID!) {country(code:$code) {name}}`.
     # + variables - The GraphQL variables. For example `{"code": "<variable_value>"}`.
     # + operationName - The GraphQL operation name. If a request has two or more operations, then each operation must have a name.
-    #                   A request can only execute one operation, so you must also include the operation name to execute.
+    # A request can only execute one operation, so you must also include the operation name to execute.
     # + headers - The GraphQL API headers to execute each query
     # + targetType - The payload (`GenericResponseWithErrors`), which is expected to be returned after data binding. For example
-    #               `type CountryByCodeResponse record {| map<json?> extensions?; record {| record{|string name;|}? country; |} data; ErrorDetail[] errors?; |};`
+    # `type CountryByCodeResponse record {| map<json?> extensions?; record {| record{|string name;|}? country; |} data; ErrorDetail[] errors?; |};`
     # + return - The GraphQL response or a `graphql:ClientError` if failed to execute the query
     remote isolated function execute(string document, map<anydata>? variables = (), string? operationName = (),
-                                     map<string|string[]>? headers = (),
-                                     typedesc<GenericResponseWithErrors|record {}|json|stream<GenericResponseWithErrors|record{}|json>> targetType = <>)
-                                     returns targetType|ClientError = @java:Method {
+            map<string|string[]>? headers = (),
+            typedesc<GenericResponseWithErrors|record {}|json|stream<GenericResponseWithErrors|record {}|json>> targetType = <>)
+                                    returns targetType|ClientError = @java:Method {
         'class: "io.ballerina.stdlib.graphql.runtime.client.QueryExecutor",
         name: "execute"
     } external;
 
     # Closes the underlying WebSocket connection of all the subscriptions.
-    # 
+    #
     # + return - A `graphql:ClientError` if an error occurred while closing the connection
     remote isolated function closeSubscriptions() returns ClientError? {
         do {
@@ -110,7 +126,7 @@ public isolated client class Client {
             lock {
                 foreach Subscriber subscriber in self.subscribersMap {
                     check subscriber->unsubscribe();
-                    
+
                 }
             }
             websocket:Client wsClient = check self.getWebSocketClient();
@@ -123,10 +139,10 @@ public isolated client class Client {
         }
     }
 
-    private isolated function processExecuteWithType(typedesc<GenericResponse|record{}|json> targetType,
-                                                     string document, map<anydata>? variables, string? operationName,
-                                                     map<string|string[]>? headers)
-                                                     returns GenericResponse|record{}|json|ClientError {
+    private isolated function processExecuteWithType(typedesc<GenericResponse|record {}|json> targetType,
+            string document, map<anydata>? variables, string? operationName,
+            map<string|string[]>? headers)
+                                                    returns GenericResponse|record {}|json|ClientError {
         http:Request request = new;
         json graphqlPayload = getGraphqlPayload(document, variables, operationName);
         request.setPayload(graphqlPayload);
@@ -146,10 +162,10 @@ public isolated client class Client {
         }
     }
 
-    private isolated function processExecute(typedesc<GenericResponseWithErrors|record{}|json> targetType,
-                                             string document, map<anydata>? variables, string? operationName,
-                                             map<string|string[]>? headers)
-                                             returns GenericResponseWithErrors|record{}|json|ClientError {
+    private isolated function processExecute(typedesc<GenericResponseWithErrors|record {}|json> targetType,
+            string document, map<anydata>? variables, string? operationName,
+            map<string|string[]>? headers)
+                                            returns GenericResponseWithErrors|record {}|json|ClientError {
         http:Request request = new;
         json graphqlPayload = getGraphqlPayload(document, variables, operationName);
         request.setPayload(graphqlPayload);
@@ -168,7 +184,7 @@ public isolated client class Client {
                 self.wsClient = check new (self.wsServiceUrl, self.wsConfig);
                 self.wsConnectionClosed = false;
             }
-            return <websocket:Client> self.wsClient;
+            return <websocket:Client>self.wsClient;
         }
     }
 
@@ -186,8 +202,8 @@ public isolated client class Client {
     }
 
     private isolated function executeSubscription(string document, map<anydata>? variables, string? operationName,
-                                                  map<string|string[]>? headers, typedesc<stream<GenericResponseWithErrors|record {}|json>> targetType)
-                                                  returns stream<GenericResponseWithErrors|record {}|json>|ClientError {
+            map<string|string[]>? headers, typedesc<stream<GenericResponseWithErrors|record {}|json>> targetType)
+                                                returns stream<GenericResponseWithErrors|record {}|json>|ClientError {
         do {
             websocket:Client wsClient = check self.getWebSocketClient();
             check self.initWsConnection();

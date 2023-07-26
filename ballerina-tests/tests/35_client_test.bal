@@ -733,7 +733,7 @@ isolated function testClientConfiguration() returns error? {
     string document = "{ greeting }";
     string url = "https://localhost:9096/basicAuth ";
 
-    graphql:Client graphqlClient = check new (url, httpConfig = {
+    graphql:Client graphqlClient = check new (url, {
         cache : {enabled: true, isShared: true},
         timeout : 1,
         http1Settings : {keepAlive: "NEVER"},
