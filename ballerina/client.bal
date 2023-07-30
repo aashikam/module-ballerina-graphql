@@ -208,7 +208,7 @@ public isolated client class Client {
             websocket:Client wsClient = check self.getWebSocketClient();
             check self.initWsConnection();
             string id = uuid:createType1AsString();
-            Subscriber subscriber = new (id, wsClient);
+            Subscriber subscriber = new (id, wsClient, targetType);
             lock {
                 self.subscribersMap[id] = subscriber;
             }

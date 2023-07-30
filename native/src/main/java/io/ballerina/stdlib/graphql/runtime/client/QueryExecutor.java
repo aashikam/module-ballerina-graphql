@@ -21,7 +21,10 @@ package io.ballerina.stdlib.graphql.runtime.client;
 import io.ballerina.runtime.api.Environment;
 import io.ballerina.runtime.api.Future;
 import io.ballerina.runtime.api.PredefinedTypes;
+import io.ballerina.runtime.api.creators.ValueCreator;
 import io.ballerina.runtime.api.types.ObjectType;
+import io.ballerina.runtime.api.types.StreamType;
+import io.ballerina.runtime.api.types.Type;
 import io.ballerina.runtime.api.utils.TypeUtils;
 import io.ballerina.runtime.api.values.BObject;
 import io.ballerina.runtime.api.values.BString;
@@ -63,6 +66,11 @@ public class QueryExecutor {
                                          Object operationName, Object headers, BTypedesc targetType) {
         return invokeClientMethod(env, client, document, variables, operationName, headers, targetType,
                 "processExecuteWithType");
+    }
+
+    public static BTypedesc getDataBindingValue(BTypedesc targetType) {
+        Type streamType = targetType.getDescribingType();
+        return ValueCreator.createTypedescValue(((StreamType) streamType).getConstrainedType());
     }
 
     private static Object invokeClientMethod(Environment env, BObject client, BString document, Object variables,

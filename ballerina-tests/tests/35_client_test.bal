@@ -758,7 +758,7 @@ isolated function testClientSubscription() returns error? {
     string document = string `subscription { live { product { id } score } }`;
     string url = "http://localhost:9090/reviews";
     graphql:Client graphqlClient = check new (url);
-    stream<graphql:GenericResponseWithErrors|record {}|json> subscriptionStream = check graphqlClient->execute(document);
+    stream<json> subscriptionStream = check graphqlClient->execute(document);
     if subscriptionStream is stream<json> {
         int id = 1;
         check from json message in subscriptionStream do {
